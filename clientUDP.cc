@@ -69,12 +69,12 @@ int main (int argc, char *argv[]) {
 
 	char buf[MAXLEN];
 	char input[MAXLEN - 4];
-	printf"--BEGINSEND--\n");
+	printf("--BEGINSEND--\n");
 	while (true) {
 		bool stop = false;
 
 		if (fgets(input, MAXLEN - 4, stdin) == NULL) {
-			strcpy(buf, "STOP_SESSION\n");
+			strcpy(buf, "STOP_SESSION");
 			stop = true;
 		} else if (strcmp(input, "STOP\n") == 0) {
 			strcpy(buf, "STOP");
