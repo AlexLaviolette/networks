@@ -10,7 +10,6 @@
 #include <errno.h>
 #include <ifaddrs.h>
 #include <unistd.h>
-#include <regex>
 
 int main (int argc, char *argv[]) {
 	const int MAXLEN = 256;
@@ -93,7 +92,7 @@ int main (int argc, char *argv[]) {
 		memset(buf, 0, MAXLEN);
 		recvfrom(s, buf, MAXLEN, 0, NULL, NULL);
 		char * error;
-  		error = strstr (buf, "ERROR");
+  		error = strstr(buf, "ERROR");
   		if (error != NULL) {
   			printf("error: %s\n", input);
   		} else {

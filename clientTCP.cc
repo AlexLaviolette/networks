@@ -10,7 +10,6 @@
 #include <errno.h>
 #include <ifaddrs.h>
 #include <unistd.h>
-#include <regex>
 
 int main (int argc, char *argv[]) {
 	const int MAXLEN = 256;
