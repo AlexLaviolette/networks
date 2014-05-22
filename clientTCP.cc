@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -20,20 +21,9 @@ int main (int argc, char *argv[]) {
 	}
 
 	int s;
-	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		perror("socket");
 		exit(0);
-	}
-
-	struct sockaddr_in a;
-
-	a.sin_family = AF_INET;
-	a.sin_port = 0;
-	a.sin_addr.s_addr = INADDR_ANY;
-
-	if (bind(s, (const struct sockaddr *) (&a), sizeof(struct sockaddr_in)) < 0) {
-		perror("bind");
-		exit (0);
 	}
 
 	struct sockaddr_in sa; /* Server address */
@@ -66,6 +56,11 @@ int main (int argc, char *argv[]) {
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons (portnum);
 
+	if (connect(s, (const struct sockaddr *) (&sa), sizeof(struct sockaddr_in)) != 0) {
+		perror("connect");
+		exit (0);
+	}
+
 	char buf[MAXLEN];
 	char input[MAXLEN - 4];
 
@@ -85,7 +80,7 @@ int main (int argc, char *argv[]) {
 
 		int len;
 		if ((len = send(s, buf, strlen(buf) + 1, 0)) < strlen(buf) + 1) {
-			fprintf(stderr, "Tried to send %lu, sent only %d\n", strlen(buf) + 1, len);
+			fprintf(stderr, "Tried to send %u, sent only %d\n", strlen(buf) + 1, len);
 		}
 		if (stop) break;
 
