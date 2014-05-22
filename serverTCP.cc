@@ -59,36 +59,53 @@ struct ClientThread {
 	{}
 };
 
+std::string trim(std::string line) {
+	int left, right;
+	for (left = 0; left < line.length() && isspace(line[left]); left++);
+	for (right = line.length() - 1; right >= left && isspace(line[right]); right--);
+	if (right >= left) {
+		return line.substr(left, right - left + 1);
+	}
+	return "";
+}
+
+bool isNumeric(std::string str) {
+	if (!str.length()) {
+		return false;
+	}
+	for (unsigned int i = 0; i < str.length(); i++) {
+		if (!isdigit(str[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
 class InputBuffer {
 	std::stringstream ss;
 	std::string tok;
-	std::string last_tok;
 	std::vector<std::string> get;
-	bool end;
 
 public:
-	InputBuffer(): end(false) {}
+	InputBuffer(const std::string & str): ss(str) {}
 
 	bool next() {
-		if (!(ss >> tok)) {
+		get.clear();
+
+		std::string line;
+		if (!std::getline(ss, line)) {
 			return false;
 		}
-		if (last_tok.length()) {
-			tok = last_tok + tok;
-			last_tok = "";
-		}
-		if (!end && !ss.peek()) {
-			last_tok = tok;
+
+		std::stringstream line_ss(line);
+		if (!(line_ss >> tok)) {
 			tok = "";
-			return false;
-		}
-		if (tok == "GET") {
-			get.clear();
-			get.push_back(tok);
-		} else if (!get.empty() && get.size() < 3) {
-			get.push_back(tok);
+		} else if (tok == "GET") {
+			while (line_ss >> tok) {
+				get.push_back(tok);
+			}
 		} else {
-			get.clear();
+			tok = trim(line);
 		}
 		return true;
 	}
@@ -100,48 +117,32 @@ public:
 		return stop() || (tok == "STOP_SESSION");
 	}
 	bool hasGet() const {
-		return get.size() == 3;
+		return isNumeric(getGroupId()) && isNumeric(getStudentId());
 	}
 	bool error() const {
-		return !stopSession() && get.empty();
+		return !tok.empty() && !stopSession() && !hasGet();
 	}
 
 	std::string getGroupId() const {
-		return get[1];
+		return get.size() == 2 ? get[0] : "";
 	}
 	std::string getStudentId() const {
-		return get[2];
-	}
-
-	InputBuffer & operator<<(const std::string & str) {
-		ss << str;
-		return *this;
-	}
-
-	void endRead() {
-		end = true;
+		return get.size() == 2 ? get[1] : "";
 	}
 };
 
 void _handle(ClientThread * ct) {
-	InputBuffer inputBuffer;
 	char buf[4096];
-
-	while (1) {
-		int l = read(ct->sockfd, buf, 4095);
-		if (l) {
-			buf[l] = '\0';
-			std::string bufstr(buf);
-			inputBuffer << bufstr;
-		} else {
-			inputBuffer.endRead();
-		}
+	int l;
+	while (l = read(ct->sockfd, buf, 4095)) {
+		buf[l] = '\0';
+		std::string bufstr(buf);
+		InputBuffer inputBuffer(bufstr);
 
 		while (inputBuffer.next()) {
 			if (inputBuffer.error()) {
 				std::string errStr = "ERROR_INVALID_INPUT";
 				write(ct->sockfd, errStr.c_str(), errStr.length());
-				continue;
 			}
 
 			if (inputBuffer.stop()) {
@@ -167,10 +168,6 @@ void _handle(ClientThread * ct) {
 					write(ct->sockfd, errStr.c_str(), errStr.length());
 				}
 			}
-		}
-
-		if (!l) {
-			return;
 		}
 	}
 }
