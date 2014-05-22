@@ -68,7 +68,6 @@ int main (int argc, char *argv[]) {
 
 	char buf[MAXLEN];
 	char input[MAXLEN - 4];
-	printf("--BEGINSEND--\n");
 	while (true) {
 		bool stop = false;
 
