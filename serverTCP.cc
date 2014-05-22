@@ -252,16 +252,16 @@ int main() {
 	GroupMap groupMap;
 	std::cin >> groupMap;
 
-	fd_set fds;
-	FD_ZERO(&fds);
-	FD_SET(soc, &fds);
-	timeval tv = {0, 500000};
-
 	std::vector<ClientThread *> threads;
 	pthread_mutex_init(&m_end_session, NULL);
 	char _end_session = 0;
+	timeval tv = {0, 500000};
 
 	while (!_end_session) {
+		fd_set fds;
+		FD_ZERO(&fds);
+		FD_SET(soc, &fds);
+
 		int retval = select(soc + 1, &fds, NULL, NULL, &tv);
 		if (retval < 0) {
 			perror("Select:");
@@ -273,7 +273,6 @@ int main() {
 				break;
 			}
 
-			std::cout << "asdf" << std::endl;
 			ClientThread * ct = new ClientThread(clientSoc, &groupMap, &end_session, &m_end_session);
 			if (pthread_create(&(ct->id), NULL, handle, ct) != 0) {
 				delete ct;
