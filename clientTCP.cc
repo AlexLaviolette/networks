@@ -29,8 +29,8 @@ int main (int argc, char *argv[]) {
 	}
 
 	// obtain a socket descriptor
-	int sock;
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	int sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock < 0) {
 		std::cerr<< "socket error" << std::endl;
 		exit(1);
 	}
@@ -91,8 +91,8 @@ int main (int argc, char *argv[]) {
 		}
 
 		// send message and check for truncation
-		int sent;
-		if ((sent = send(sock, message, strlen(message) + 1, 0)) < strlen(message) + 1) {
+		int sent = send(sock, message, strlen(message) + 1, 0);
+		if (sent < strlen(message) + 1) {
 			std::cerr<< "Message truncated" << std::endl;
 		}
 		// if stop command was issued, exit

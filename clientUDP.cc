@@ -30,8 +30,8 @@ int main (int argc, char *argv[]) {
 	}
 
 	// obtain a socket descriptor
-	int sock;
-	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0) {
 		std::cerr<< "socket error" << std::endl;
 		exit(1);
 	}
@@ -43,7 +43,8 @@ int main (int argc, char *argv[]) {
 	my_addr.sin_addr.s_addr = INADDR_ANY;
 
 	// bind the address to the socket
-	if (bind(sock, (const struct sockaddr *) (&my_addr), sizeof(struct sockaddr_in)) < 0) {
+	int bind_ret = bind(sock, (const struct sockaddr *) (&my_addr), sizeof(struct sockaddr_in));
+	if (bind_ret < 0) {
 		std::cerr<< "bind error" << std::endl;
 		exit (2);
 	}
@@ -98,8 +99,8 @@ int main (int argc, char *argv[]) {
 		}
 
 		// send message and check for truncation
-		int sent;
-		if ((sent = sendto(sock, message, strlen(message) + 1, 0, (struct sockaddr *) &server_address, sizeof(server_address))) < strlen(message) + 1) {
+		int sent = sendto(sock, message, strlen(message) + 1, 0, (struct sockaddr *) &server_address, sizeof(server_address));
+		if (sent < strlen(message) + 1) {
 			std::cerr<< "Message truncated" << std::endl;
 		}
 		// if stop command was issued, exit
