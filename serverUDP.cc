@@ -211,12 +211,6 @@ int main() {
 		return 1;
 	}
 
-	if (listen(soc, 1000) < 0) {
-		perror("Listen:");
-		close(soc);
-		return 1;
-	}
-
 	std::cout << inet_ntoa(addr.sin_addr) << " " << ntohs(addr.sin_port) << std::endl;
 
 	GroupMap groupMap;
