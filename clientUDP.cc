@@ -118,7 +118,7 @@ int main (int argc, char *argv[]) {
   			// parse error from server
   			has_error = received.find("INVALID", 6);
   			if (has_error != std::string::npos) {
-  				std::cerr << "error: invalid client_input" << std::endl;
+  				std::cerr << "error: invalid input" << std::endl;
   			} else {
   				std::cerr << "error: " << client_input;
   			}
