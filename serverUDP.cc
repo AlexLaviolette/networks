@@ -1,18 +1,15 @@
 #include <arpa/inet.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <ifaddrs.h>
 #include <iostream>
 #include <map>
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <pthread.h>
 #include <sstream>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/select.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -111,7 +108,7 @@ public:
 	}
 };
 
-int handle(int sockfd, GroupMap & groupMap) {
+int handle(int sockfd, GroupMap * groupMap) {
 	char buf[4096];
 
 	while (1) {
@@ -225,7 +222,7 @@ int main() {
 	GroupMap groupMap;
 	std::cin >> groupMap;
 
-	int retCode = handle(soc, groupMap);
+	int retCode = handle(soc, &groupMap);
 
 	close(soc);
 	return retCode;

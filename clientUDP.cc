@@ -84,7 +84,7 @@ int main (int argc, char *argv[]) {
 
 		int len;
 		if ((len = sendto(s, buf, strlen(buf) + 1, 0, (struct sockaddr *) &sa, sizeof(sa))) < strlen(buf) + 1) {
-			fprintf(stderr, "Tried to send %lu, sent only %d\n", strlen(buf) + 1, len);
+			fprintf(stderr, "Tried to send %u, sent only %d\n", strlen(buf) + 1, len);
 		}
 		if (stop) break;
 
