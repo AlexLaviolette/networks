@@ -39,26 +39,6 @@ std::istream & operator>>(std::istream & in, GroupMap & groupMap) {
 	return in;
 }
 
-struct ClientThread {
-	pthread_t id;
-	int sockfd;
-	GroupMap * groupMap;
-	char * end_session;
-	pthread_mutex_t * m_end_session;
-
-	ClientThread(
-		int sockfd,
-		GroupMap * groupMap,
-		char * end_session,
-		pthread_mutex_t * m_end_session
-	):
-		sockfd(sockfd),
-		groupMap(groupMap),
-		end_session(end_session),
-		m_end_session(m_end_session)
-	{}
-};
-
 std::string trim(std::string line) {
 	int left, right;
 	for (left = 0; left < line.length() && isspace(line[left]); left++);
@@ -131,10 +111,21 @@ public:
 	}
 };
 
-void _handle(ClientThread * ct) {
+int handle(int sockfd, GroupMap & groupMap) {
 	char buf[4096];
-	int l;
-	while (l = read(ct->sockfd, buf, 4095)) {
+
+	while (1) {
+		sockaddr clientAddr;
+		socklen_t clientAddrLen = sizeof(sockaddr);
+		int l = recvfrom(sockfd, buf, 4095, 0, &clientAddr, &clientAddrLen);
+		if (l < 0) {
+			perror("recvfrom:");
+			return 1;
+		}
+		if (!l) {
+			return 0;
+		} 
+
 		buf[l] = '\0';
 		std::string bufstr(buf);
 		InputBuffer inputBuffer(bufstr);
@@ -142,45 +133,30 @@ void _handle(ClientThread * ct) {
 		while (inputBuffer.next()) {
 			if (inputBuffer.error()) {
 				std::string errStr = "ERROR_INVALID_INPUT";
-				write(ct->sockfd, errStr.c_str(), errStr.length());
+				sendto(sockfd, errStr.c_str(), errStr.length(), 0, &clientAddr, clientAddrLen);
 			}
 
 			if (inputBuffer.stop()) {
-				pthread_mutex_lock(ct->m_end_session);
-				*ct->end_session = 1;
-				pthread_mutex_unlock(ct->m_end_session);
-			}
-			if (inputBuffer.stopSession()) {
-				return;
+				return 0;
 			}
 
 			if (inputBuffer.hasGet()) {
 				std::string groupId = inputBuffer.getGroupId();
 				std::string studentId = inputBuffer.getStudentId();
-				GroupMap::iterator group = ct->groupMap->find(groupId);
-				if (group != ct->groupMap->end() && group->second.find(studentId) != group->second.end()) {
+				GroupMap::iterator group = groupMap->find(groupId);
+				if (group != groupMap->end() && group->second.find(studentId) != group->second.end()) {
 					std::string studentName = group->second.find(studentId)->second;
-					write(ct->sockfd, studentName.c_str(), studentName.length());
+					sendto(sockfd, studentName.c_str(), studentName.length(), 0, &clientAddr, clientAddrLen);
 				} else {
 					std::stringstream err;
 					err << "ERROR_" << groupId << "_" << studentId;
 					std::string errStr = err.str();
-					write(ct->sockfd, errStr.c_str(), errStr.length());
+					sendto(sockfd, errStr.c_str(), errStr.length(), 0, &clientAddr, clientAddrLen);
 				}
 			}
 		}
 	}
 }
-
-void * handle(void * arg) {
-	ClientThread * ct = (ClientThread *) arg;
-	_handle(ct);
-	close(ct->sockfd);
-	return NULL;
-}
-
-char end_session = 0;
-pthread_mutex_t m_end_session;
 
 int getUnboundSockAddr(int soc, sockaddr_in * addr) {
 	ifaddrs * addrs;
@@ -219,7 +195,7 @@ int getUnboundSockAddr(int soc, sockaddr_in * addr) {
 
 
 int main() {
-	int soc = socket(AF_INET, SOCK_STREAM, 0);
+	int soc = socket(AF_INET, SOCK_DGRAM, 0);
 	
 	if (soc < 0) {
 		perror("Socket:");
@@ -249,48 +225,8 @@ int main() {
 	GroupMap groupMap;
 	std::cin >> groupMap;
 
-	std::vector<ClientThread *> threads;
-	pthread_mutex_init(&m_end_session, NULL);
-	char _end_session = 0;
-
-	int retCode = 0;
-	while (!_end_session) {
-		fd_set fds;
-		FD_ZERO(&fds);
-		FD_SET(soc, &fds);
-		timeval tv = {0, 500000};
-
-		int retval = select(soc + 1, &fds, NULL, NULL, &tv);
-		if (retval < 0) {
-			perror("Select:");
-			retCode = 1;
-			break;
-		} else if (retval > 0) {
-			int clientSoc = accept(soc, NULL, NULL);
-			if (clientSoc < 0) {
-				perror("Accept:");
-				retCode = 1;
-				break;
-			}
-
-			ClientThread * ct = new ClientThread(clientSoc, &groupMap, &end_session, &m_end_session);
-			if (pthread_create(&(ct->id), NULL, handle, ct) != 0) {
-				delete ct;
-			} else {
-				threads.push_back(ct);
-			}
-		}
-
-		pthread_mutex_lock(&m_end_session);
-		_end_session = end_session;
-		pthread_mutex_unlock(&m_end_session);
-	}
+	int retCode = handle(soc, groupMap);
 
 	close(soc);
-	for (unsigned int i = 0; i < threads.size(); ++i) {
-		pthread_join(threads[i]->id, NULL);
-		delete threads[i];
-	}
-	pthread_mutex_destroy(&m_end_session);
 	return retCode;
 }
