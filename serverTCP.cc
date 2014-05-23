@@ -132,8 +132,29 @@ public:
 
 void _handle(ClientThread * ct) {
 	char buf[4096];
-	int l;
-	while (l = read(ct->sockfd, buf, 4095)) {
+
+	while (1) {
+		pthread_mutex_lock(ct->m_end_session);
+		int _end_session = *ct->end_session;
+		pthread_mutex_unlock(ct->m_end_session);
+		if (_end_session) {
+			return;
+		}
+
+		fd_set fds;
+		FD_ZERO(&fds);
+		FD_SET(ct->sockfd, &fds);
+		timeval tv = {0, 500000};
+
+		int retval = select(ct->sockfd + 1, &fds, NULL, NULL, &tv);
+		if (retval < 0) {
+			perror("Select:");
+			return;
+		} else if (retval == 0) {
+			continue;
+		}
+
+		int l = read(ct->sockfd, buf, 4095);
 		buf[l] = '\0';
 		std::string bufstr(buf);
 		InputBuffer inputBuffer(bufstr);
