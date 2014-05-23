@@ -4,7 +4,7 @@ udp:
 
 tcp:
 	g++ -o client clientTCP.cc
-	g++ -o server serverTCP.cc
+	g++ -pthread -o server serverTCP.cc
 
 clean:
 	rm -f client server
